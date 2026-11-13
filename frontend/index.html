@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhishDetect — Suspicious URL &amp; Homoglyph Threat Intelligence</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="phish-shell">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="radar-glyph">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+            <path d="M2 12h20"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>PHISHDETECT <span class="badge-tag">ANTI-PHISHING ENGINE</span></h1>
+          <p class="brand-sub">LEXICAL HEURISTICS • SHANNON ENTROPY • HOMOGLYPH IDN DETECTION</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="status-indicator">
+          <span class="live-dot pulse"></span>
+          <span>HEURISTIC ENGINE ARMED</span>
+        </div>
+        <button id="refreshSummaryBtn" class="btn btn-secondary">Sync Metrics</button>
+      </div>
+    </header>
+
+    <!-- Metrics Bar -->
+    <section class="metrics-strip">
+      <div class="metric-box">
+        <span class="m-title">TOTAL ANALYZED</span>
+        <span class="m-val" id="statTotalScans">0</span>
+        <span class="m-note">Evaluated URL Telemetry</span>
+      </div>
+      <div class="metric-box box-mal">
+        <span class="m-title">MALICIOUS THREATS</span>
+        <span class="m-val text-crit" id="statMalicious">0</span>
+        <span class="m-note">Score > 65 • Confirmed Phishing</span>
+      </div>
+      <div class="metric-box box-susp">
+        <span class="m-title">SUSPICIOUS LINKS</span>
+        <span class="m-val text-high" id="statSuspicious">0</span>
+        <span class="m-note">Score 25-65 • Anomaly Flags</span>
+      </div>
+      <div class="metric-box box-benign">
+        <span class="m-title">BENIGN VERIFIED</span>
+        <span class="m-val text-green" id="statBenign">0</span>
+        <span class="m-note">Clean Navigation Target</span>
+      </div>
+      <div class="metric-box">
+        <span class="m-title">AVERAGE THREAT SCORE</span>
+        <span class="m-val text-accent" id="statAvgScore">0.0</span>
+        <span class="m-note">Aggregate Severity Index</span>
+      </div>
+    </section>
+
+    <!-- URL Inspector Section -->
+    <section class="inspector-section">
+      <div class="inspector-card">
+        <div class="inspector-head">
+          <h2>Inspect URL Target</h2>
+          <span class="head-hint">Analyzes domain structure, punycode spoofing, brand impersonation, and parameter entropy</span>
+        </div>
+
+        <form id="urlInspectForm" class="url-input-group">
+          <input type="text" id="targetUrlInput" placeholder="Enter suspicious URL (e.g. http://paypal-security-update.xyz/login)..." required autocomplete="off">
+          <button type="submit" class="btn btn-primary" id="inspectBtn">Run Inspection</button>
+        </form>
+
+        <div class="sample-scenarios">
+          <span class="sample-label">TEST SCENARIOS:</span>
+          <button class="sample-btn" onclick="injectSample('paypal')">PayPal Credential Lure</button>
+          <button class="sample-btn" onclick="injectSample('homoglyph')">Punycode IDN Spoof</button>
+          <button class="sample-btn" onclick="injectSample('dga')">High-Entropy DGA Domain</button>
+          <button class="sample-btn" onclick="injectSample('ip')">Direct IP Auth Trap</button>
+          <button class="sample-btn sample-benign" onclick="injectSample('benign')">Benign Wikipedia Target</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dynamic Result Display (Hidden initially) -->
+    <section id="analysisResultSection" class="results-section hidden">
+      <div class="results-grid">
+        <!-- Score Card -->
+        <div class="score-card">
+          <div class="score-circle" id="scoreCircle">
+            <span class="score-number" id="resultScore">0</span>
+            <span class="score-label">/ 100</span>
+          </div>
+          <div class="classification-badge" id="resultClassification">BENIGN</div>
+          <div class="target-host-display" id="resultHostname">—</div>
+        </div>
+
+        <!-- Details & Risk Factors -->
+        <div class="details-card">
+          <div class="details-top">
+            <h3>Lexical &amp; Structural Telemetry</h3>
+            <span class="entropy-tag">Shannon Entropy: <strong id="resultEntropy">0.00</strong> bits/symbol</span>
+          </div>
+
+          <div class="telemetry-badges">
+            <span class="t-badge">TLD: <strong id="resultTLD">—</strong></span>
+            <span class="t-badge">URL Length: <strong id="resultLength">0</strong> chars</span>
+            <span class="t-badge">Homoglyph Spoofing: <strong id="resultHomoglyph">None</strong></span>
+          </div>
+
+          <div class="risk-factors-container">
+            <h4>Triggered Heuristic Risk Rules</h4>
+            <div id="riskFactorsList" class="factors-list">
+              <!-- Risk factors injected here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabs: History & Blocklist -->
+    <main class="tabs-main">
+      <div class="tab-buttons">
+        <button class="tab-chip active" data-tab="historyTab">Recent Scan History</button>
+        <button class="tab-chip" data-tab="blocklistTab">Custom Blocklist Rules</button>
+      </div>
+
+      <!-- History Tab -->
+      <div class="tab-pane active" id="historyTab">
+        <div class="pane-box">
+          <div class="pane-header">
+            <h3>Historical URL Assessments</h3>
+            <div class="filter-pills">
+              <button class="f-pill active" data-filter="ALL">ALL</button>
+              <button class="f-pill" data-filter="MALICIOUS">MALICIOUS</button>
+              <button class="f-pill" data-filter="SUSPICIOUS">SUSPICIOUS</button>
+              <button class="f-pill" data-filter="BENIGN">BENIGN</button>
+            </div>
+          </div>
+
+          <div class="history-list" id="historyContainer">
+            <div class="empty-state">No historical scans recorded yet. Enter a URL above to inspect.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Blocklist Tab -->
+      <div class="tab-pane" id="blocklistTab">
+        <div class="pane-box">
+          <div class="pane-header">
+            <h3>Active Blocklist Threat Signatures</h3>
+            <button class="btn btn-sm btn-secondary" onclick="toggleAddBlocklistModal()">+ Add Rule</button>
+          </div>
+
+          <!-- Add Rule Form -->
+          <div class="add-rule-box hidden" id="addRuleBox">
+            <form id="addRuleForm" class="rule-form">
+              <input type="text" id="rulePattern" placeholder="Pattern (e.g. *phish-target* or *.top)" required>
+              <input type="text" id="ruleReason" placeholder="Reason for blocking" required>
+              <div class="rule-form-actions">
+                <button type="button" class="btn btn-secondary" onclick="toggleAddBlocklistModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Rule</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="blocklist-items" id="blocklistContainer">
+            <!-- Rules list -->
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

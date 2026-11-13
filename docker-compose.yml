@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  phishdetect:
+    build: .
+    container_name: phishdetect-engine
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - PHISHDETECT_DB=/app/data/phishdetect.db
+    volumes:
+      - phish_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  phish_data:
